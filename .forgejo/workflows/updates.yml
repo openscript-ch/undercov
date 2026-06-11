@@ -18,7 +18,7 @@ jobs:
     name: Run Renovate
     runs-on: srv-obin-ch_ubuntu-latest
     container:
-      image: docker.io/renovate/renovate:43.214.2
+      image: docker.io/renovate/renovate:43.220.0
 
     steps:
       - name: Invoke Renovate
