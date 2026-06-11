@@ -1,0 +1,48 @@
+name: Create Release Tag
+
+on:
+  pull_request:
+    types:
+      - closed
+
+permissions:
+  contents: write
+
+jobs:
+  tag-release:
+    name: Tag merged release PR
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' && startsWith(github.event.pull_request.head.ref, 'release/v')
+    runs-on: srv-obin-ch_ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: https://code.forgejo.org/actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Create and push tag
+        env:
+          PUSH_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN || github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+
+          TAG_NAME="${HEAD_REF#release/}"
+
+          if [[ ! "${TAG_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag name derived from release branch: ${TAG_NAME}" >&2
+            exit 1
+          fi
+
+          if git rev-parse -q --verify "refs/tags/${TAG_NAME}" >/dev/null; then
+            echo "Tag ${TAG_NAME} already exists, skipping."
+            exit 0
+          fi
+
+          git config user.name "release-bot"
+          git config user.email "release-bot@users.noreply.local"
+
+          git tag -a "${TAG_NAME}" "${MERGE_SHA}" -m "Release ${TAG_NAME}"
+          git -c http.extraheader="Authorization: token ${PUSH_TOKEN}" push origin "refs/tags/${TAG_NAME}"

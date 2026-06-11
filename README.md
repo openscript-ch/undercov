@@ -80,4 +80,11 @@ go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run
 
 ## Releases
 
-Releases are managed with release-please. Conventional commits pushed to `main` are used to open a release PR with the changelog and version updates. When the resulting `v*` tag is pushed, the Forgejo release workflow builds binaries for Linux (`x86_64`, `arm64`, `armv7`) and Windows (`x86_64`, `arm64`), then uploads them to the Forgejo release with SHA256 checksums.
+Releases are managed with git-cliff and Forgejo workflows.
+
+1. Conventional commits are pushed to `main`.
+2. The `version.yml` workflow computes the next semantic version, updates `CHANGELOG.md` with git-cliff, and creates or updates a release PR.
+3. When the release PR is merged, `tag.yml` creates and pushes the corresponding `v*` tag.
+4. The tag triggers `release.yml`, which builds binaries for Linux (`x86_64`, `arm64`, `armv7`) and Windows (`x86_64`, `arm64`) and uploads artifacts plus SHA256 checksums.
+
+To guarantee that a tag pushed by automation can trigger the release workflow in your Forgejo setup, configure the `RELEASE_BOT_TOKEN` repository secret and use a token with permission to push branches and tags.

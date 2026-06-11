@@ -1,0 +1,170 @@
+name: Version PR
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: version-main
+  cancel-in-progress: true
+
+jobs:
+  version-pr:
+    name: Create or Update Release PR
+    runs-on: srv-obin-ch_ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: https://code.forgejo.org/actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine last tag
+        id: version
+        run: |
+          set -euo pipefail
+
+          LAST_TAG="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)"
+          if [[ -z "${LAST_TAG}" ]]; then
+            LAST_TAG="v0.0.0"
+          fi
+
+          echo "last_tag=${LAST_TAG}" >> "${GITHUB_OUTPUT}"
+
+      - name: Determine next version with git-cliff
+        id: bump
+        uses: https://github.com/orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --bumped-version
+          github_token: ""
+        env:
+          OUTPUT: .next-version
+
+      - name: Prepare release metadata
+        id: release
+        run: |
+          set -euo pipefail
+
+          NEXT_TAG="$(tr -d '\n\r[:space:]' < .next-version)"
+          LAST_TAG="${{ steps.version.outputs.last_tag }}"
+
+          if [[ -z "${NEXT_TAG}" ]]; then
+            echo "No releasable conventional commits found."
+            echo "has_release=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          if [[ "${NEXT_TAG}" != v* ]]; then
+            NEXT_TAG="v${NEXT_TAG}"
+          fi
+
+          if [[ "${NEXT_TAG}" == "${LAST_TAG}" ]]; then
+            echo "No new release version detected."
+            echo "has_release=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          if [[ ! "${NEXT_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid next tag format: ${NEXT_TAG}" >&2
+            exit 1
+          fi
+
+          BRANCH_NAME="release/${NEXT_TAG}"
+
+          echo "has_release=true" >> "${GITHUB_OUTPUT}"
+          echo "next_tag=${NEXT_TAG}" >> "${GITHUB_OUTPUT}"
+          echo "branch_name=${BRANCH_NAME}" >> "${GITHUB_OUTPUT}"
+
+      - name: Generate changelog entry
+        if: steps.release.outputs.has_release == 'true'
+        uses: https://github.com/orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --unreleased --tag "${{ steps.release.outputs.next_tag }}" --prepend CHANGELOG.md
+          github_token: ""
+        env:
+          OUTPUT: CHANGELOG.md
+
+      - name: Commit and push release branch
+        if: steps.release.outputs.has_release == 'true'
+        env:
+          PUSH_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet CHANGELOG.md; then
+            echo "No changelog changes detected."
+            exit 0
+          fi
+
+          git config user.name "release-bot"
+          git config user.email "release-bot@users.noreply.local"
+
+          BRANCH_NAME="${{ steps.release.outputs.branch_name }}"
+          git switch -C "${BRANCH_NAME}"
+          git add CHANGELOG.md
+          git commit -m "chore(release): ${{ steps.release.outputs.next_tag }}"
+
+          git -c http.extraheader="Authorization: token ${PUSH_TOKEN}" push --force-with-lease origin "${BRANCH_NAME}"
+
+      - name: Create or update release PR
+        if: steps.release.outputs.has_release == 'true'
+        env:
+          API_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+
+          API_URL="${{ github.api_url }}"
+          REPO="${{ github.repository }}"
+          OWNER="${{ github.repository_owner }}"
+          BRANCH_NAME="${{ steps.release.outputs.branch_name }}"
+          NEXT_TAG="${{ steps.release.outputs.next_tag }}"
+
+          TITLE="chore(release): ${NEXT_TAG}"
+          BODY="## Release ${NEXT_TAG}
+
+          This PR was generated automatically.
+
+          - updates CHANGELOG.md using git-cliff
+          - prepares release tag ${NEXT_TAG}
+          "
+
+          EXISTING_JSON="$(curl -fsSL \
+            -H "Authorization: token ${API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "${API_URL}/repos/${REPO}/pulls?state=open&head=${OWNER}:${BRANCH_NAME}&base=main")"
+
+          PR_NUMBER="$(echo "${EXISTING_JSON}" | jq -r '.[0].number // empty')"
+
+          if [[ -z "${PR_NUMBER}" ]]; then
+            jq -n \
+              --arg title "${TITLE}" \
+              --arg head "${BRANCH_NAME}" \
+              --arg base "main" \
+              --arg body "${BODY}" \
+              '{title: $title, head: $head, base: $base, body: $body}' \
+              | curl -fsSL -X POST \
+                -H "Authorization: token ${API_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d @- \
+                "${API_URL}/repos/${REPO}/pulls"
+            echo "Created release PR for ${NEXT_TAG}."
+          else
+            jq -n \
+              --arg title "${TITLE}" \
+              --arg body "${BODY}" \
+              '{title: $title, body: $body}' \
+              | curl -fsSL -X PATCH \
+                -H "Authorization: token ${API_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -d @- \
+                "${API_URL}/repos/${REPO}/pulls/${PR_NUMBER}"
+            echo "Updated release PR #${PR_NUMBER} for ${NEXT_TAG}."
+          fi
