@@ -34,9 +34,7 @@ jobs:
           curl -fsSL "https://github.com/orhun/git-cliff/releases/download/v${CLIFF_VERSION}/${ARCHIVE}" \
             -o /tmp/git-cliff.tar.gz
           tar -xzf /tmp/git-cliff.tar.gz -C /tmp
-          install -d "${HOME}/.local/bin"
-          install -m 0755 "/tmp/git-cliff-${CLIFF_VERSION}/git-cliff" "${HOME}/.local/bin/git-cliff"
-          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+          install -m 0755 "/tmp/git-cliff-${CLIFF_VERSION}/git-cliff" /usr/local/bin/git-cliff
           git-cliff --version
 
       - name: Prepare release metadata
