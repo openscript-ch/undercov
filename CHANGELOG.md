@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.3 - 2026-06-11
+
+### Bug Fixes
+- Release job in tag workflow
+
 ## v0.1.2 - 2026-06-11
 
 ### Bug Fixes
