@@ -3,11 +3,17 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g., v1.0.0)'
+        description: "Version to release (e.g., v1.0.0)"
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      version:
+        description: "Version to release (e.g., v1.0.0)"
         required: true
         type: string
 
@@ -28,7 +34,7 @@ jobs:
       - name: Set up Go
         uses: https://code.forgejo.org/actions/setup-go@v6
         with:
-          go-version-file: '.tool-versions'
+          go-version-file: ".tool-versions"
 
       - name: Determine version
         id: version
@@ -76,4 +82,3 @@ jobs:
             - **undercov-${{ steps.version.outputs.version }}-windows-arm64.exe**: 64-bit ARM Windows
 
             All binaries are checksummed with SHA256 in `undercov-${{ steps.version.outputs.version }}.sha256`.
-
