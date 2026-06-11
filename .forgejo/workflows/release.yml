@@ -63,7 +63,7 @@ jobs:
           cat undercov-${{ steps.version.outputs.version }}.sha256
 
       - name: Upload release to Forgejo
-        uses: https://code.forgejo.org/actions/forgejo-release@v1
+        uses: https://code.forgejo.org/actions/forgejo-release@v2.13.1
         with:
           direction: upload
           tag_name: ${{ steps.version.outputs.version }}
