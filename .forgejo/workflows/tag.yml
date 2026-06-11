@@ -52,8 +52,8 @@ jobs:
             exit 0
           fi
 
-          git config user.name "release-bot"
-          git config user.email "release-bot@users.noreply.local"
+          git config user.name "openscript-bot"
+          git config user.email "r+codebergbot@obin.ch"
 
           git tag -a "${TAG_NAME}" "${MERGE_SHA}" -m "Release ${TAG_NAME}"
           git -c http.extraheader="Authorization: token ${PUSH_TOKEN}" push origin "refs/tags/${TAG_NAME}"
