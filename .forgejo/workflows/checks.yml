@@ -27,7 +27,7 @@ jobs:
         run: go mod download
 
       - name: Lint code
-        uses: https://github.com/golangci/golangci-lint-action@v3
+        uses: https://github.com/golangci/golangci-lint-action@v9
         with:
           version: latest
 
