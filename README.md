@@ -8,7 +8,7 @@ undercov is a command-line tool built with Go that helps you track your test cov
 
 - Supports monorepos with multiple coverage files.
 
-## Getting started
+## Usage
 
 undercov is a single multi-platform binary that you can download from the release page.
 
@@ -45,9 +45,35 @@ jobs:
           branch: coverage
 ```
 
-## Options
+### Options
 
 - `threshold`: The minimum coverage percentage required to pass the check.
 - `files`: The glob pattern to locate the coverage files (e.g., `**/coverage/lcov.info`).
 - `branch`: The name of the branch where the coverage data will be stored (default: `coverage`).
 
+## Development
+
+1. Clone the repository
+2. Download Go dependencies
+
+```bash
+go mod download
+```
+
+3. Run lint checks with the same golangci-lint version used in CI
+
+```bash
+make lint
+```
+
+4. Run tests
+
+```bash
+make test
+```
+
+If you prefer to run golangci-lint directly without `make`, use:
+
+```bash
+go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run
+```

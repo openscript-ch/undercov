@@ -63,7 +63,9 @@ func (r *Runner) UpdateBranch(branch string, files map[string][]byte) error {
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
 
 	branchExists, err := r.BranchExists(branch)
 	if err != nil {
