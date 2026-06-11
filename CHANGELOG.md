@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.5 - 2026-06-11
+
+### Bug Fixes
+- Version workflow git author
+- Release to forgejo
+
 ## v0.1.4 - 2026-06-11
 
 ### Bug Fixes
