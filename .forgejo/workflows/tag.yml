@@ -62,7 +62,7 @@ jobs:
   release:
     name: Build and Release
     needs: tag-release
-    if: needs.tag-release.outputs.version != ''
+    if: needs.tag-release.result == 'success' && needs.tag-release.outputs.version != ''
     uses: ./.forgejo/workflows/release.yml
     with:
       version: ${{ needs.tag-release.outputs.version }}
