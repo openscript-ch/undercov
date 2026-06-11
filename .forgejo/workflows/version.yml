@@ -96,8 +96,8 @@ jobs:
             exit 0
           fi
 
-          git config user.name "release-bot"
-          git config user.email "release-bot@users.noreply.local"
+          git config user.name "openscript-bot"
+          git config user.email "r+codebergbot@obin.ch"
 
           BRANCH_NAME="${{ steps.release.outputs.branch_name }}"
           git switch -C "${BRANCH_NAME}"
