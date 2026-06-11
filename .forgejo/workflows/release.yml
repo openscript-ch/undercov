@@ -63,23 +63,23 @@ jobs:
           sha256sum undercov-* > undercov-${{ steps.version.outputs.version }}.sha256
           cat undercov-${{ steps.version.outputs.version }}.sha256
 
+      - name: Extract release notes
+        id: notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          BODY="$(awk "/^## ${VERSION}/{found=1; next} found && /^## v/{exit} found{print}" CHANGELOG.md || true)"
+          if [[ -z "${BODY}" ]]; then
+            BODY="Release ${VERSION}"
+          fi
+          echo "${BODY}" > /tmp/release-notes.md
+
       - name: Upload release to Forgejo
         uses: https://code.forgejo.org/actions/forgejo-release@v2.13.1
         with:
           direction: upload
-          tag_name: ${{ steps.version.outputs.version }}
-          files: |
-            build/undercov-*
-            build/*.sha256
+          tag: ${{ steps.version.outputs.version }}
           title: Release ${{ steps.version.outputs.version }}
-          body: |
-            ## Release ${{ steps.version.outputs.version }}
-
-            This release includes pre-built binaries for multiple architectures:
-            - **undercov-${{ steps.version.outputs.version }}-linux-x86_64**: 64-bit Intel/AMD Linux
-            - **undercov-${{ steps.version.outputs.version }}-linux-arm64**: 64-bit ARM Linux
-            - **undercov-${{ steps.version.outputs.version }}-linux-armv7**: 32-bit ARM Linux
-            - **undercov-${{ steps.version.outputs.version }}-windows-x86_64.exe**: 64-bit Intel/AMD Windows
-            - **undercov-${{ steps.version.outputs.version }}-windows-arm64.exe**: 64-bit ARM Windows
-
-            All binaries are checksummed with SHA256 in `undercov-${{ steps.version.outputs.version }}.sha256`.
+          release-notes-file: /tmp/release-notes.md
+          release-dir: build
+          token: ${{ secrets.RELEASE_BOT_TOKEN || forge.token }}
