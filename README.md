@@ -77,3 +77,7 @@ If you prefer to run golangci-lint directly without `make`, use:
 ```bash
 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 run
 ```
+
+## Releases
+
+Releases are managed with release-please. Conventional commits pushed to `main` are used to open a release PR with the changelog and version updates. When the resulting `v*` tag is pushed, the Forgejo release workflow builds binaries for Linux (`x86_64`, `arm64`, `armv7`) and Windows (`x86_64`, `arm64`), then uploads them to the Forgejo release with SHA256 checksums.

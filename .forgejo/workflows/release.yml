@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: srv-obin-ch_ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: https://code.forgejo.org/actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: https://code.forgejo.org/actions/setup-go@v6
+        with:
+          go-version-file: '.tool-versions'
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            VERSION="${{ inputs.version }}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION}"
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build multiarch binaries
+        run: make build-multiarch VERSION=${{ steps.version.outputs.version }}
+
+      - name: Create checksums
+        run: |
+          cd build
+          sha256sum undercov-* > undercov-${{ steps.version.outputs.version }}.sha256
+          cat undercov-${{ steps.version.outputs.version }}.sha256
+
+      - name: Upload release to Forgejo
+        uses: https://code.forgejo.org/actions/forgejo-release@v1
+        with:
+          direction: upload
+          tag_name: ${{ steps.version.outputs.version }}
+          files: |
+            build/undercov-*
+            build/*.sha256
+          title: Release ${{ steps.version.outputs.version }}
+          body: |
+            ## Release ${{ steps.version.outputs.version }}
+
+            This release includes pre-built binaries for multiple architectures:
+            - **undercov-${{ steps.version.outputs.version }}-linux-x86_64**: 64-bit Intel/AMD Linux
+            - **undercov-${{ steps.version.outputs.version }}-linux-arm64**: 64-bit ARM Linux
+            - **undercov-${{ steps.version.outputs.version }}-linux-armv7**: 32-bit ARM Linux
+            - **undercov-${{ steps.version.outputs.version }}-windows-x86_64.exe**: 64-bit Intel/AMD Windows
+            - **undercov-${{ steps.version.outputs.version }}-windows-arm64.exe**: 64-bit ARM Windows
+
+            All binaries are checksummed with SHA256 in `undercov-${{ steps.version.outputs.version }}.sha256`.
+
