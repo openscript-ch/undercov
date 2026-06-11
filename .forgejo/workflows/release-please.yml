@@ -25,5 +25,5 @@ jobs:
           target-branch: main
           token: ${{ github.token }}
           github-api-url: ${{ github.api_url }}
-          github-graphql-url: ${{ github.api_url }}
+          github-graphql-url: ${{ github.server_url }}/api
           changelog-host: ${{ github.server_url }}
