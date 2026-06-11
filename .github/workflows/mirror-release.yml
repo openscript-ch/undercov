@@ -1,0 +1,128 @@
+name: Mirror Release to GitHub
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  mirror-release:
+    name: Mirror Forgejo Release to GitHub
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract tag name
+        id: tag
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "Tag: ${TAG_NAME}"
+
+      - name: Fetch release from Forgejo
+        id: forgejo
+        env:
+          TAG_NAME: ${{ steps.tag.outputs.tag }}
+          FORGEJO_PAT: ${{ secrets.FORGEJO_PAT }}
+        run: |
+          # Query Forgejo API for release by tag
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: token ${FORGEJO_PAT}" \
+            "https://codeberg.org/api/v1/repos/openscript-ch/undercov/releases/tags/${TAG_NAME}")
+
+          # Extract HTTP status code (last line)
+          STATUS=$(echo "${RESPONSE}" | tail -n1)
+          # Extract response body (all but last line)
+          BODY=$(echo "${RESPONSE}" | head -n-1)
+
+          echo "HTTP Status: ${STATUS}"
+
+          if [[ "${STATUS}" == "404" ]]; then
+            echo "::warning::Release ${TAG_NAME} not found on Forgejo. Skipping mirror."
+            echo "found=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [[ "${STATUS}" != "200" ]]; then
+            echo "::error::Failed to fetch release from Forgejo (HTTP ${STATUS})"
+            echo "Response: ${BODY}"
+            exit 1
+          fi
+
+          echo "found=true" >> $GITHUB_OUTPUT
+
+          # Save the full response for later steps
+          echo "${BODY}" > /tmp/forgejo-release.json
+
+          # Extract and output release metadata
+          RELEASE_NAME=$(echo "${BODY}" | jq -r '.name // .tag_name')
+          RELEASE_BODY=$(echo "${BODY}" | jq -r '.body // ""')
+          IS_DRAFT=$(echo "${BODY}" | jq -r '.draft // false')
+          IS_PRERELEASE=$(echo "${BODY}" | jq -r '.prerelease // false')
+          ASSET_COUNT=$(echo "${BODY}" | jq '.assets | length')
+
+          echo "name=${RELEASE_NAME}" >> $GITHUB_OUTPUT
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "${RELEASE_BODY}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "draft=${IS_DRAFT}" >> $GITHUB_OUTPUT
+          echo "prerelease=${IS_PRERELEASE}" >> $GITHUB_OUTPUT
+          echo "asset_count=${ASSET_COUNT}" >> $GITHUB_OUTPUT
+
+          echo "Release fetched from Forgejo:"
+          echo "  Name: ${RELEASE_NAME}"
+          echo "  Draft: ${IS_DRAFT}"
+          echo "  Prerelease: ${IS_PRERELEASE}"
+          echo "  Assets: ${ASSET_COUNT}"
+
+      - name: Download release assets from Forgejo
+        if: steps.forgejo.outputs.found == 'true'
+        env:
+          FORGEJO_PAT: ${{ secrets.FORGEJO_PAT }}
+        run: |
+          mkdir -p ./release-assets
+
+          # Parse and download each asset from the saved response
+          ASSET_COUNT=$(jq '.assets | length' /tmp/forgejo-release.json)
+          echo "Downloading ${ASSET_COUNT} assets..."
+
+          jq -r '.assets[] | "\(.name)|\(.browser_download_url)"' /tmp/forgejo-release.json | while IFS='|' read -r ASSET_NAME DOWNLOAD_URL; do
+            echo "Downloading: ${ASSET_NAME}"
+            curl -L -o "./release-assets/${ASSET_NAME}" "${DOWNLOAD_URL}"
+            if [[ $? -eq 0 ]]; then
+              echo "  ✓ Downloaded successfully ($(du -h ./release-assets/${ASSET_NAME} | cut -f1))"
+            else
+              echo "  ✗ Failed to download"
+              exit 1
+            fi
+          done
+
+          echo ""
+          echo "Assets downloaded:"
+          ls -lh ./release-assets/
+
+      - name: Create release on GitHub
+        if: steps.forgejo.outputs.found == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.forgejo.outputs.name }}
+          body: ${{ steps.forgejo.outputs.body }}
+          draft: ${{ steps.forgejo.outputs.draft }}
+          prerelease: ${{ steps.forgejo.outputs.prerelease }}
+          files: ./release-assets/*
+          token: ${{ github.token }}
+
+      - name: Summary
+        if: always()
+        run: |
+          if [[ "${{ steps.forgejo.outputs.found }}" == "true" ]]; then
+            echo "✓ Release mirrored successfully to GitHub"
+            echo "  Tag: ${{ steps.tag.outputs.tag }}"
+            echo "  Release: ${{ steps.forgejo.outputs.name }}"
+            echo "  Assets: ${{ steps.forgejo.outputs.asset_count }}"
+          else
+            echo "⊘ Release not found on Forgejo, skipping mirror"
+          fi
