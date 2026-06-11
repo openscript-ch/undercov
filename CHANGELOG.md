@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.0 - 2026-06-11
+
+### Features
+- Mirror releases to github
+
 ## v0.1.5 - 2026-06-11
 
 ### Bug Fixes
