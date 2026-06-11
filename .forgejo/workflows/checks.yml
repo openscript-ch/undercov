@@ -11,7 +11,7 @@ on:
 jobs:
   checks:
     name: Run checks
-    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, 'from changeset-release/') }}
+    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, 'from release/') }}
     runs-on: srv-obin-ch_ubuntu-latest
 
     steps:
@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: https://code.forgejo.org/actions/setup-go@v6
         with:
-          go-version-file: '.tool-versions'
+          go-version-file: ".tool-versions"
 
       - name: Install dependencies
         run: go mod download
