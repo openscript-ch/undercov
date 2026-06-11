@@ -1,0 +1,37 @@
+name: Updates
+
+on:
+  push:
+    branches:
+      - updates/**
+    paths:
+      - .forgejo/workflows/updates.yml
+  schedule:
+    - cron: "0 0 * * *" # Runs every day at midnight
+  workflow_dispatch:
+
+env:
+  RENOVATE_REPOSITORIES: ${{ github.repository }}
+
+jobs:
+  renovate:
+    name: Run Renovate
+    runs-on: srv-obin-ch_ubuntu-latest
+    container:
+      image: docker.io/renovate/renovate:43.214.2
+
+    steps:
+      - name: Invoke Renovate
+        run: renovate
+        env:
+          RENOVATE_GITHUB_COM_TOKEN: ${{ secrets.PAT_GITHUB_COM_TOKEN }}
+          RENOVATE_BASE_DIR: ${{ github.workspace }}/.tmp
+          RENOVATE_ENDPOINT: ${{ github.server_url }}
+          RENOVATE_PLATFORM: forgejo
+          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+          RENOVATE_GIT_AUTHOR: "openscript-bot <r+codebergbot@obin.ch>"
+          RENOVATE_X_SQLITE_PACKAGE_CACHE: true
+          GIT_AUTHOR_NAME: "openscript-bot"
+          GIT_AUTHOR_EMAIL: "r+codebergbot@obin.ch"
+          GIT_COMMITTER_NAME: "openscript-bot"
+          GIT_COMMITTER_EMAIL: "r+codebergbot@obin.ch"

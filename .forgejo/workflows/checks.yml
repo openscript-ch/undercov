@@ -4,10 +4,15 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   checks:
-    runs-on: ubuntu-latest
+    name: Run checks
+    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, 'from changeset-release/') }}
+    runs-on: srv-obin-ch_ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -22,7 +27,7 @@ jobs:
         run: go mod download
 
       - name: Lint code
-        uses: golangci/golangci-lint-action@v3
+        uses: https://github.com/golangci/golangci-lint-action@v3
         with:
           version: latest
 
