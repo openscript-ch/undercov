@@ -25,35 +25,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Determine last tag
-        id: version
+      - name: Install git-cliff
+        env:
+          CLIFF_VERSION: "2.13.1"
         run: |
           set -euo pipefail
-
-          LAST_TAG="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)"
-          if [[ -z "${LAST_TAG}" ]]; then
-            LAST_TAG="v0.0.0"
-          fi
-
-          echo "last_tag=${LAST_TAG}" >> "${GITHUB_OUTPUT}"
-
-      - name: Determine next version with git-cliff
-        id: bump
-        uses: https://github.com/orhun/git-cliff-action@v4
-        with:
-          config: cliff.toml
-          args: --bumped-version
-          github_token: ""
-        env:
-          OUTPUT: .next-version
+          ARCHIVE="git-cliff-${CLIFF_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          curl -fsSL "https://github.com/orhun/git-cliff/releases/download/v${CLIFF_VERSION}/${ARCHIVE}" \
+            -o /tmp/git-cliff.tar.gz
+          tar -xzf /tmp/git-cliff.tar.gz -C /tmp
+          install -d "${HOME}/.local/bin"
+          install -m 0755 "/tmp/git-cliff-${CLIFF_VERSION}/git-cliff" "${HOME}/.local/bin/git-cliff"
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+          git-cliff --version
 
       - name: Prepare release metadata
         id: release
         run: |
           set -euo pipefail
 
-          NEXT_TAG="$(tr -d '\n\r[:space:]' < .next-version)"
-          LAST_TAG="${{ steps.version.outputs.last_tag }}"
+          LAST_TAG="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo 'v0.0.0')"
+          NEXT_TAG="$(git-cliff --bumped-version 2>/dev/null || true)"
 
           if [[ -z "${NEXT_TAG}" ]]; then
             echo "No releasable conventional commits found."
@@ -84,13 +76,9 @@ jobs:
 
       - name: Generate changelog entry
         if: steps.release.outputs.has_release == 'true'
-        uses: https://github.com/orhun/git-cliff-action@v4
-        with:
-          config: cliff.toml
-          args: --unreleased --tag "${{ steps.release.outputs.next_tag }}" --prepend CHANGELOG.md
-          github_token: ""
-        env:
-          OUTPUT: CHANGELOG.md
+        run: |
+          set -euo pipefail
+          git-cliff --unreleased --tag "${{ steps.release.outputs.next_tag }}" --prepend CHANGELOG.md
 
       - name: Commit and push release branch
         if: steps.release.outputs.has_release == 'true'
