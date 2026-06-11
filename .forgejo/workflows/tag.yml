@@ -23,11 +23,18 @@ jobs:
 
       - name: Create and push tag
         env:
-          PUSH_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN || github.token }}
+          PUSH_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
           MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
           set -euo pipefail
+
+          if [[ -z "${PUSH_TOKEN}" ]]; then
+            echo "RELEASE_BOT_TOKEN secret is not set." >&2
+            echo "A personal access token is required to push tags that trigger workflows." >&2
+            echo "The default workflow token cannot trigger downstream workflow runs." >&2
+            exit 1
+          fi
 
           TAG_NAME="${HEAD_REF#release/}"
 
