@@ -33,7 +33,6 @@ jobs:
           case "$(uname -m)" in
             x86_64)  ARCH="x86_64-unknown-linux-gnu" ;;
             aarch64) ARCH="aarch64-unknown-linux-gnu" ;;
-            armv7l)  ARCH="armv7-unknown-linux-gnueabihf" ;;
             *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;;
           esac
           ARCHIVE="git-cliff-${CLIFF_VERSION}-${ARCH}.tar.gz"

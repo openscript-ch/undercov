@@ -12,39 +12,6 @@ undercov is a command-line tool built with Go that helps you track your test cov
 
 undercov is a single multi-platform binary that you can download from the release page.
 
-### Github Actions
-
-You can use undercov in your Github Actions workflow to check for under-coverage. Here's an example of how to set it up:
-
-```yaml
-name: Coverage check
-
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
-jobs:
-  coverage:
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-
-      - name: Run tests and generate lcov file
-        run: |
-          # Run your tests and generate the lcov file
-
-      - name: Check coverage with undercov
-        uses: openscript-ch/undercov@v1
-        with:
-          threshold: 80
-          files: '**/coverage/lcov.info'
-          branch: coverage
-```
-
 ### Options
 
 - `threshold`: The minimum coverage percentage required to pass the check.
