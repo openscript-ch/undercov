@@ -25,6 +25,14 @@ func TestRunStoresCoverage(t *testing.T) {
 	if string(output) != "SF:foo.go\nLF:2\nLH:1\nend_of_record\n" {
 		t.Fatalf("stored content mismatch: %q", string(output))
 	}
+
+	author, err := gitLog(repoRoot, "coverage-data", "--format=%an|%ae", "-1")
+	if err != nil {
+		t.Fatalf("git show author error = %v", err)
+	}
+	if string(author) != "test|test@example.com\n" {
+		t.Fatalf("commit author mismatch: %q", string(author))
+	}
 }
 
 func TestRunRegressionCheck(t *testing.T) {
@@ -74,6 +82,12 @@ func mustRun(t *testing.T, dir string, name string, args ...string) {
 
 func gitShow(dir, ref string) ([]byte, error) {
 	cmd := exec.Command("git", "show", ref)
+	cmd.Dir = dir
+	return cmd.Output()
+}
+
+func gitLog(dir string, args ...string) ([]byte, error) {
+	cmd := exec.Command("git", append([]string{"log"}, args...)...)
 	cmd.Dir = dir
 	return cmd.Output()
 }

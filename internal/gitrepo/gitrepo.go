@@ -104,7 +104,8 @@ func (r *Runner) UpdateBranch(branch string, files map[string][]byte) error {
 	if err := runGit(tmpDir, "add", ".undercov"); err != nil {
 		return err
 	}
-	if err := runGit(tmpDir, "-c", "user.name=undercov", "-c", "user.email=undercov@local", "-c", "commit.gpgsign=false", "commit", "-m", "chore: update coverage", "--no-gpg-sign"); err != nil {
+	name, email := resolveCommitIdentity(tmpDir)
+	if err := runGit(tmpDir, "-c", "user.name="+name, "-c", "user.email="+email, "-c", "commit.gpgsign=false", "commit", "-m", "chore: update coverage", "--no-gpg-sign"); err != nil {
 		return err
 	}
 
@@ -128,6 +129,62 @@ func runGit(dir string, args ...string) error {
 	}
 
 	return nil
+}
+
+func runGitOutput(dir string, args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
+	if err != nil {
+		if stderr.Len() > 0 {
+			return "", fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
+		}
+		return "", fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
+	}
+
+	return strings.TrimSpace(string(out)), nil
+}
+
+func resolveCommitIdentity(dir string) (string, string) {
+	name := firstNonEmpty(
+		strings.TrimSpace(os.Getenv("GIT_AUTHOR_NAME")),
+		strings.TrimSpace(os.Getenv("GIT_COMMITTER_NAME")),
+	)
+	email := firstNonEmpty(
+		strings.TrimSpace(os.Getenv("GIT_AUTHOR_EMAIL")),
+		strings.TrimSpace(os.Getenv("GIT_COMMITTER_EMAIL")),
+	)
+
+	if name == "" {
+		if configuredName, err := runGitOutput(dir, "config", "--get", "user.name"); err == nil {
+			name = configuredName
+		}
+	}
+	if email == "" {
+		if configuredEmail, err := runGitOutput(dir, "config", "--get", "user.email"); err == nil {
+			email = configuredEmail
+		}
+	}
+
+	if name == "" {
+		name = "undercov"
+	}
+	if email == "" {
+		email = "undercov@local"
+	}
+
+	return name, email
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func IsNotFound(err error) bool {
