@@ -1,0 +1,47 @@
+name: Coverage
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: write
+
+concurrency:
+  group: coverage-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    name: Check coverage
+    runs-on: srv-obin-ch_ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: https://code.forgejo.org/actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: https://code.forgejo.org/actions/setup-go@v6
+        with:
+          go-version-file: ".tool-versions"
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Generate LCOV report
+        run: make test-coverage
+
+      - name: Check coverage with undercov
+        uses: https://codeberg.org/openscript-ch/undercov-action@v1
+        with:
+          files: coverage/coverage.lcov
+          branch: coverage
+          threshold: 80
+          check-regression: "true"

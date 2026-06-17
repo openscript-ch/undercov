@@ -2,13 +2,19 @@ GOLANGCI_LINT_VERSION ?= v2.12.2
 VERSION ?= dev
 BUILD_DIR ?= build
 
-.PHONY: lint test build build-multiarch clean
+.PHONY: lint test test-coverage build build-multiarch clean
 
 lint:
 	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION) run
 
 test:
 	go test ./...
+
+test-coverage:
+	@mkdir -p coverage
+	go test -coverprofile=coverage/coverage.out ./...
+	go tool cover -func=coverage/coverage.out
+	go run github.com/jandelgado/gcov2lcov@latest -infile=coverage/coverage.out -outfile=coverage/coverage.lcov
 
 build:
 	@mkdir -p $(BUILD_DIR)
