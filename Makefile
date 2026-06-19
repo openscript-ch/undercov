@@ -14,7 +14,7 @@ test-coverage:
 	@mkdir -p coverage
 	go test -coverprofile=coverage/coverage.out ./...
 	go tool cover -func=coverage/coverage.out
-	go run github.com/jandelgado/gcov2lcov@latest -infile=coverage/coverage.out -outfile=coverage/coverage.lcov
+	go run github.com/jandelgado/gcov2lcov@latest -infile=coverage/coverage.out -outfile=coverage/lcov.info
 
 build:
 	@mkdir -p $(BUILD_DIR)
