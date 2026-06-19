@@ -104,13 +104,36 @@ func (r *Runner) UpdateBranch(branch string, files map[string][]byte) error {
 	if err := runGit(tmpDir, "add", ".undercov"); err != nil {
 		return err
 	}
-	name, email := resolveCommitIdentity(tmpDir)
-	if err := runGit(tmpDir, "-c", "user.name="+name, "-c", "user.email="+email, "-c", "commit.gpgsign=false", "commit", "-m", "chore: update coverage", "--no-gpg-sign"); err != nil {
+
+	staged, err := runGitOutput(tmpDir, "status", "--porcelain", ".undercov")
+	if err != nil {
 		return err
+	}
+	if strings.TrimSpace(staged) != "" {
+		name, email := resolveCommitIdentity(tmpDir)
+		if err := runGit(tmpDir, "-c", "user.name="+name, "-c", "user.email="+email, "-c", "commit.gpgsign=false", "commit", "-m", "chore: update coverage", "--no-gpg-sign"); err != nil {
+			return err
+		}
 	}
 
 	if err := runGit(r.repoRoot, "worktree", "remove", "--force", tmpDir); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (r *Runner) PushBranch(remote, branch string) error {
+	if err := runGit(r.repoRoot, "push", remote, branch+":"+branch); err != nil {
+		return fmt.Errorf("push coverage branch %q to remote %q: %w", branch, remote, err)
+	}
+
+	return nil
+}
+
+func (r *Runner) PushBranchForceWithLease(remote, branch string) error {
+	if err := runGit(r.repoRoot, "push", "--force-with-lease", remote, branch+":"+branch); err != nil {
+		return fmt.Errorf("push coverage branch %q to remote %q with force-with-lease: %w", branch, remote, err)
 	}
 
 	return nil

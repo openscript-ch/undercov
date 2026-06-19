@@ -17,6 +17,11 @@ undercov is a single multi-platform binary that you can download from the releas
 - `threshold`: The minimum coverage percentage required to pass the check.
 - `files`: The glob pattern to locate the coverage files (e.g., `**/coverage/lcov.info`).
 - `branch`: The name of the branch where the coverage data will be stored (default: `coverage`).
+- `push`: Push the updated coverage branch to a remote (default: `false`).
+- `remote`: The remote used when `push` is enabled (default: `origin`).
+- `push-force-with-lease`: Push with `--force-with-lease` when `push` is enabled (default: `false`).
+
+By default, undercov stores coverage snapshots in the local coverage branch only. Enable `push` in CI to publish updates to the remote branch. If your remote branch can diverge (for example with parallel jobs), `push-force-with-lease` allows replacing the remote tip while still protecting against unexpected concurrent updates.
 
 ## Development
 

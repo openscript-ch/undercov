@@ -14,6 +14,9 @@ var version = "dev"
 func main() {
 	files := flag.String("files", "**/coverage/lcov.info", "Glob pattern for LCOV files")
 	branch := flag.String("branch", "coverage", "Branch used to store coverage data")
+	push := flag.Bool("push", false, "Push the coverage branch to the configured remote")
+	remote := flag.String("remote", "origin", "Remote used when pushing coverage data")
+	pushForceWithLease := flag.Bool("push-force-with-lease", false, "Use --force-with-lease when pushing coverage branch")
 	threshold := flag.Float64("threshold", 0, "Minimum coverage percentage")
 	checkRegression := flag.Bool("check-regression", false, "Fail if coverage regresses compared to previously stored data")
 	versionFlag := flag.Bool("version", false, "Print version and exit")
@@ -31,11 +34,14 @@ func main() {
 	}
 
 	config := app.Config{
-		WorkDir:         workDir,
-		Files:           *files,
-		Branch:          *branch,
-		Threshold:       *threshold,
-		CheckRegression: *checkRegression,
+		WorkDir:            workDir,
+		Files:              *files,
+		Branch:             *branch,
+		Push:               *push,
+		Remote:             *remote,
+		PushForceWithLease: *pushForceWithLease,
+		Threshold:          *threshold,
+		CheckRegression:    *checkRegression,
 	}
 	if err := app.Run(context.Background(), config); err != nil {
 		fmt.Fprintln(os.Stderr, err)

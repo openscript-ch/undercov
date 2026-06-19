@@ -16,11 +16,14 @@ import (
 )
 
 type Config struct {
-	WorkDir         string
-	Files           string
-	Branch          string
-	Threshold       float64
-	CheckRegression bool
+	WorkDir            string
+	Files              string
+	Branch             string
+	Push               bool
+	Remote             string
+	PushForceWithLease bool
+	Threshold          float64
+	CheckRegression    bool
 }
 
 func Run(_ context.Context, config Config) error {
@@ -36,6 +39,9 @@ func Run(_ context.Context, config Config) error {
 	}
 	if config.Branch == "" {
 		config.Branch = "coverage"
+	}
+	if config.Remote == "" {
+		config.Remote = "origin"
 	}
 
 	repoRoot, err := gitrepo.RepoRoot(config.WorkDir)
@@ -97,6 +103,18 @@ func Run(_ context.Context, config Config) error {
 
 	if err := runner.UpdateBranch(config.Branch, coverageFiles); err != nil {
 		return err
+	}
+
+	if config.Push {
+		if config.PushForceWithLease {
+			if err := runner.PushBranchForceWithLease(config.Remote, config.Branch); err != nil {
+				return err
+			}
+		} else {
+			if err := runner.PushBranch(config.Remote, config.Branch); err != nil {
+				return err
+			}
+		}
 	}
 
 	if len(failures) > 0 {
