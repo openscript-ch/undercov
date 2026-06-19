@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.0 - 2026-06-19
+
+### Features
+- Read author from environment
+- Push coverage files to git
+
 ## v0.2.0 - 2026-06-11
 
 ### Features
