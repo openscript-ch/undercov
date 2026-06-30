@@ -44,7 +44,6 @@ jobs:
       - name: Check coverage with undercov
         uses: https://codeberg.org/openscript-ch/undercov-action@v1
         with:
-          files: coverage/coverage.lcov
           branch: coverage
           threshold: 80
           check-regression: "true"
