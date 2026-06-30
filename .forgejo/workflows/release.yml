@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: https://code.forgejo.org/actions/checkout@v6
+        uses: https://code.forgejo.org/actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ inputs.version || github.ref }}
