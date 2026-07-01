@@ -7,6 +7,7 @@ Don't go undercov! Track your test coverage and check for under-coverage with th
 undercov is a command-line tool built with Go that helps you track your test coverage. It works standalone and stores the coverage data inside a branch in your Git repository. With undercov, you can easily check on your CI pipeline if your changes meet the required coverage thresholds, ensuring that your code is well-tested and maintainable.
 
 - Supports monorepos with multiple coverage files.
+- Checks for coverage regressions in pull requests.
 
 ## Usage
 
