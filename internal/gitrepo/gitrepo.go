@@ -216,5 +216,5 @@ func IsNotFound(err error) bool {
 		return false
 	}
 	text := string(exitError.Stderr)
-	return strings.Contains(text, "unknown revision") || strings.Contains(text, "pathspec") || strings.Contains(text, "exists on disk, but not in")
+	return strings.Contains(text, "unknown revision") || strings.Contains(text, "pathspec") || strings.Contains(text, "exists on disk, but not in") || strings.Contains(text, "invalid object name") || strings.Contains(text, "does not exist in")
 }

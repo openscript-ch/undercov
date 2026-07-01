@@ -163,7 +163,7 @@ func discoverFiles(repoRoot string, patterns []string) ([]string, error) {
 func loadPreviousCoverage(runner *gitrepo.Runner, branch, relPath string) (float64, bool, error) {
 	content, err := runner.ReadFile(branch, coverage.StoragePath(branch, relPath))
 	if err != nil {
-		if gitrepo.IsNotFound(err) {
+		if errors.Is(err, os.ErrNotExist) || gitrepo.IsNotFound(err) {
 			return 0, false, nil
 		}
 		return 0, false, err
